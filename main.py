@@ -5,38 +5,13 @@ from signal import pause
 
 print("Initializing...")
 
-# This happens when connecting
-def on_connect(mqttc, obj, flags, rc):
-    print("rc: " + str(rc))
-
-# Getting a message from subscribe
-def on_message(mqttc, obj, msg):
-    print(msg.topic + " " + str(msg.qos) + " " + str(msg.payload))
-
-# When something is published
-def on_publish(mqttc, obj, mid):
-    print("mid: " + str(mid))
-
-# On subscribing to messages
-def on_subscribe(mqttc, obj, mid, granted_qos):
-    print("Subscribed: " + str(mid) + " " + str(granted_qos))
-
-# Taking care of logging
-def on_log(mqttc, obj, level, string):
-    print(string)
-
+print("Connecting MQTT")
 mqttc = mqtt.Client("Pi")
 mqttc.username_pw_set(username="DAeAD91yDJJrGk9TyQPyTr2rXcfrxQf0fjoIid6KMDZiNZ0aDFykWqBHqGZNl4Cq", password="")
 
-mqttc.on_message = on_message
-mqttc.on_connect = on_connect
-mqttc.on_publish = on_publish
-mqttc.on_subscribe = on_subscribe
-# Uncomment to enable debug messages
-mqttc.on_log = on_log
-
 mqttc.connect("mqtt.flespi.io", 1883)
 
+print("Setting up LEDs and Buttons")
 ledRed = LED(18)
 ledYellow = LED(19)
 ledGreen = LED(20)
@@ -49,36 +24,28 @@ btnBlue = Button(12)
 
 leds = [ ledRed, ledYellow, ledGreen, ledBlue ]
 
+print("Checking LEDs")
 for led in leds:
     led.on()
     sleep(0.2)
     led.off()
 
-def buttonPressed(led, value):
+print("Defining Button's Behavior")
+def buttonPressed(value):
     print("Button Clicked, publishing " + str(value))
-    mqttc.publish("test/review", value, 0)
-    led.on()
+    mqttc.publish("pi/buttons", value, 0)
 
-btnRed.when_pressed = lambda: buttonPressed(ledRed, 0)
-btnRed.when_released = ledRed.off
+btnRed.when_pressed = lambda: buttonPressed(0)
+btnYellow.when_pressed = lambda : buttonPressed(1)
+btnGreen.when_pressed = lambda : buttonPressed(2)
+btnBlue.when_pressed = lambda : buttonPressed(3)
 
-btnYellow.when_pressed = lambda : buttonPressed(ledYellow, 1)
-btnYellow.when_released = ledYellow.off
+print("Pi Ready")
 
-btnGreen.when_pressed = lambda : buttonPressed(ledGreen, 2)
-btnGreen.when_released = ledGreen.off
+print("Setting up minecraft environment")
+def on_mqtt_message(input):
+    print(input)
 
-btnBlue.when_pressed = lambda : buttonPressed(ledBlue, 3)
-btnBlue.when_released = ledBlue.off
-
-for led in leds:
-    led.on()
-
-sleep(1)
-
-for led in leds:
-    led.off()
-
-print("READY")
+mqttc.subscribe("pi/buttons")
 
 mqttc.loop_forever()
